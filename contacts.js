@@ -1,6 +1,6 @@
 const fs = require('fs').promises;
 const path = require('path');
-const { nanoid } = require('nanoid');
+const ObjectID = require('bson-objectid')
 const contactsPath = path.join(__dirname, './db/contacts.json');
 
 async function writeNewContacts(data) {
@@ -13,37 +13,34 @@ async function writeNewContacts(data) {
 }
 
 async function listContacts() {
-  try {
-    const contacts = await fs.readFile(contactsPath, 'utf8');
-    return await JSON.parse(contacts);
+    try {
+    const contacts = await fs.readFile(contactsPath)
+    return await JSON.parse(contacts)
   } catch (error) {
-    console.log(error);
+    console.log(error)
   }
 }
 
 async function getContactById(contactId) {
-  try {
-    const contacts = await listContacts();
-    return contacts.find(({ id }) => id === contactId);
-  } catch (error) {
-    console.log(error);
-  }
+  const contacts = await listContacts()
+  const result = await contacts.find((item) => item.id === contactId)
+  if (!result) return null
+  return result
 }
 
 async function removeContact(contactId) {
-  try {
-    const contacts = await listContacts();
-    const newContactsList = contacts.filter(({ id }) => id !== contactId);
-    writeNewContacts(newContactsList);
-  } catch (error) {
-    console.log(error);
-  }
+  const contacts = await listContacts()
+  const idx = contacts.findIndex((item) => item.id === contactId)
+  if (idx === -1) return null
+  const [result] = contacts.splice(idx, 1)
+  await fs.writeFile(contactsPath, JSON.stringify(contacts, null, 2))
+  return result
 }
 
 async function addContact(name, email, phone) {
   try {
     const contacts = await listContacts();
-    const newContactsList = [...contacts, { id: nanoid(), name, email, phone }];
+    const newContactsList = [...contacts, { id: ObjectID(), name, email, phone }];
     writeNewContacts(newContactsList);
   } catch (error) {
     console.log(error);
